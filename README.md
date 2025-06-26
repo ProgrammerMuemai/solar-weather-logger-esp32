@@ -78,10 +78,9 @@ solar-weather-logger-esp32/
 ├── code/
 │   └── main.ino           # โค้ดหลัก Arduino
 ├── docs/
-│   ├── wiring-diagram.png # แผนผังวงจร (ใส่เพิ่มภายหลัง)
-│   └── power-analysis.md  # สรุปการใช้พลังงาน
-├── README.md              # ไฟล์คำอธิบายนี้
-└── LICENSE                # แนะนำให้ใช้ MIT License
+│   ├── wiring-diagram.png # แผนผังวงจร 
+├── README.md             
+└── LICENSE                
 ```
 
 ---
