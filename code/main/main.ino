@@ -1,65 +1,105 @@
-#include <WiFi.h>
+
+// Solar Weather Logger with ESP32 + BME280 + WiFiManager (Portal Mode)
+
+#include <WiFiManager.h>
 #include <HTTPClient.h>
 #include <Wire.h>
 #include <Adafruit_BME280.h>
+// #include <Adafruit_INA219.h>
 
 #define SDA_PIN 21
 #define SCL_PIN 22
+#define RESET_BUTTON 0  // ใช้ปุ่ม BOOT (GPIO0)
 
-const char* ssid = "mshome ais_2.4G";
-const char* password = "212224236";
-const char* scriptURL = "https://script.google.com/macros/s/AKfycbyUCfaF-JZhcWBzUe7eB_CQjkXM8wAd_b2z6c30qwO3CbH8MV4xzTkzetrzT_apRcyz/exec"; // ใส่ URL ของคุณ
+const char* sheetURL = "https://script.google.com/macros/s/AKfycbyUCfaF-JZhcWBzUe7eB_CQjkXM8wAd_b2z6c30qwO3CbH8MV4xzTkzetrzT_apRcyz/exec";
 
-Adafruit_BME280 bme;  // ใช้ I2C
+WiFiManager wm;
+Adafruit_BME280 bme;
+// Adafruit_INA219 ina219;
 
 void setup() {
   Serial.begin(115200);
-  delay(100);
+  pinMode(RESET_BUTTON, INPUT_PULLUP);
+
+  // ตั้งค่าหน้าจอพอร์ทัลให้แสดงปุ่ม Erase WiFi
+  wm.setConfigPortalBlocking(true);
+  wm.setShowInfoErase(true);
+  wm.setBreakAfterConfig(true);
+  wm.setConfigPortalTimeout(300); // รอได้สูงสุด 5 นาที
+
+  // แสดงข้อความแนะนำในพอร์ทัล
+  WiFiManagerParameter custom_text("<p>กดปุ่ม 'Erase WiFi' เพื่อล้างค่าเก่า</p>");
+  wm.addParameter(&custom_text);
+
+  bool configPortal = false;
+  if (digitalRead(RESET_BUTTON) == LOW) {
+    unsigned long pressedTime = millis();
+    while (digitalRead(RESET_BUTTON) == LOW) {
+      if (millis() - pressedTime > 2000) {
+        configPortal = true;
+        break;
+      }
+    }
+  }
+
+  if (configPortal) {
+    Serial.println("🛠 เข้าสู่โหมดตั้งค่า WiFi ด้วยปุ่ม RESET");
+    if (!wm.startConfigPortal("Meng-Weather-Setup")) {
+      Serial.println("❌ เข้าสู่โหมดตั้งค่า WiFi ไม่สำเร็จ รีสตาร์ท...");
+      ESP.restart();
+    }
+  } else {
+    if (!wm.autoConnect("Meng-Weather-Setup")) {
+      Serial.println("เชื่อม WiFi ไม่สำเร็จ รีสตาร์ท...");
+      ESP.restart();
+    }
+  }
+
+  Serial.println("✅ WiFi Connected!");
 
   Wire.begin(SDA_PIN, SCL_PIN);
-  bool status = bme.begin(0x76); // หรือ 0x77 แล้วแต่ขา SDO
-  if (!status) {
-    Serial.println("ไม่พบ BME280 ตรวจสาย/Address");
-    while (1);
+  if (!bme.begin(0x76)) {
+    Serial.println("ไม่พบ BME280");
   }
 
-  WiFi.begin(ssid, password);
-  Serial.print("กำลังเชื่อมต่อ WiFi...");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("เชื่อมต่อ WiFi แล้ว!");
-}
+  // if (!ina219.begin()) {
+  //   Serial.println("ไม่พบ INA219");
+  // }
 
-void loop() {
   float temp = bme.readTemperature();
   float hum = bme.readHumidity();
   float pres = bme.readPressure() / 100.0F;
+  // float vbat = ina219.getBusVoltage_V();
+  // float current_mA = ina219.getCurrent_mA();
+  // float power_mW = ina219.getPower_mW();
 
-  Serial.println("=== ข้อมูลวัดได้ ===");
-  Serial.print("Temp: "); Serial.println(temp);
-  Serial.print("Humidity: "); Serial.println(hum);
-  Serial.print("Pressure: "); Serial.println(pres);
+  Serial.printf("Temp: %.2f C | Hum: %.2f %% | Press: %.2f hPa\n", temp, hum, pres);
+  // Serial.printf("VBat: %.2f V | Current: %.2f mA | Power: %.2f mW\n", vbat, current_mA, power_mW);
 
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin(scriptURL);
-    http.addHeader("Content-Type", "application/json");
+  HTTPClient http;
+  http.begin(sheetURL);
+  http.addHeader("Content-Type", "application/json");
 
-    String json = "{\"temp\": " + String(temp) +
-                  ", \"hum\": " + String(hum) +
-                  ", \"pres\": " + String(pres) + "}";
+  String payload = "{";
+  payload += "\"temp\":" + String(temp) + ",";
+  payload += "\"hum\":" + String(hum) + ",";
+  payload += "\"pres\":" + String(pres);
+  // payload += ",\"vbat\":" + String(vbat);
+  // payload += ",\"current\":" + String(current_mA);
+  // payload += ",\"power\":" + String(power_mW);
+  payload += "}";
 
-    int httpCode = http.POST(json);
-    String payload = http.getString();
+  int code = http.POST(payload);
+  Serial.println("HTTP Response: " + String(code));
+  http.end();
 
-    Serial.print("ส่งข้อมูลแล้ว! รหัส: ");
-    Serial.println(httpCode);
-    Serial.println("ตอบกลับ: " + payload);
+  int sleepSec = 300;
+  // if (vbat < 3.5) sleepSec = 900;
+  // if (vbat < 3.3) sleepSec = 1800;
 
-    http.end();
-  }
-
-  delay(300000); // รอ 5 นาที (300,000 ms)
+  Serial.printf("เข้าสู่ Deep Sleep %d วินาที\n", sleepSec);
+  esp_sleep_enable_timer_wakeup((uint64_t)sleepSec * 1000000ULL);
+  esp_deep_sleep_start();
 }
+
+void loop() {}
