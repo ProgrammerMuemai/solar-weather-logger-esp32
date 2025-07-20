@@ -6,7 +6,7 @@
 
 #define SDA_PIN 21
 #define SCL_PIN 22
-#define RESET_BUTTON 0  // ใช้ปุ่ม BOOT (GPIO0)
+#define RESET_BUTTON 14  // ใช้ปุ่ม BOOT (GPIO13)
 
 const char* sheetURL = "https://script.google.com/macros/s/AKfycbyUCfaF-JZhcWBzUe7eB_CQjkXM8wAd_b2z6c30qwO3CbH8MV4xzTkzetrzT_apRcyz/exec";
 
@@ -89,8 +89,8 @@ void setup() {
   http.end();
 
   int sleepSec = 300;
-  if (vbat < 3.5) sleepSec = 900;
-  if (vbat < 3.3) sleepSec = 1800;
+  if (vbat < 3.2) sleepSec = 900;
+  if (vbat < 2.9) sleepSec = 1800;
 
   Serial.printf("เข้าสู่ Deep Sleep %d วินาที\n", sleepSec);
   esp_sleep_enable_timer_wakeup((uint64_t)sleepSec * 1000000ULL);
