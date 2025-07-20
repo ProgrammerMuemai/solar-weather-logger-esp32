@@ -64,7 +64,7 @@
     `Timestamp|Temperature|Humidity|Pressure|Vbat|Current (mA)|Power(mW)|RainChance|Description`
     *(ไม่มีช่องว่าง และตัวพิมพ์เล็กทั้งหมด ตรงกับ key ที่ ESP32 ส่งมา)*
 
-### 🧠 ตัวอย่าง Apps Script ที่ใช้:
+###  Apps Script ที่ใช้:
 
 ```javascript
 function doPost(e) {
