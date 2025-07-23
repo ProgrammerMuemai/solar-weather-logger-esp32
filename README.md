@@ -1,4 +1,4 @@
-# Solar Weather Logger (ESP32 + BME280 + INA219 + Google Sheet + WiFiManager)
+# Solar Weather Station (ESP32 + BME280 + INA219 + Google Sheet + WiFiManager)
 
 ระบบบันทึกอุณหภูมิ ความชื้น ความกดอากาศ และแรงดัน-กระแสไฟ จากแผงโซล่า ด้วย ESP32, เซ็นเซอร์ BME280 และ INA219 พร้อมส่งข้อมูลขึ้น Google Sheet แบบอัตโนมัติทุก 5 นาที โดยใช้พลังงานจากแผงโซล่าเซลล์ และเข้าสู่โหมด Deep Sleep เพื่อประหยัดพลังงาน
 
