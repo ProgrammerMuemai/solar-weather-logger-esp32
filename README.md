@@ -61,28 +61,60 @@
 3.  เขียน Google Apps Script เพื่อรับข้อมูล POST และบันทึกลง Sheet
 4.  Deploy เป็น Web App และนำ URL มาใส่ในตัวแปร `sheetURL` ในโค้ด Arduino
 5.  สร้างแถวแรกใน Sheet ให้เป็นหัวตาราง (Header) ดังนี้:
-    `temp | hum | pres | vbat | current | power`
+    `Timestamp|Temperature|Humidity|Pressure|Vbat|Current (mA)|Power(mW)|RainChance|Description`
     *(ไม่มีช่องว่าง และตัวพิมพ์เล็กทั้งหมด ตรงกับ key ที่ ESP32 ส่งมา)*
 
-### 🧠 ตัวอย่าง Apps Script ที่ใช้:
+###  Apps Script ที่ใช้:
 
 ```javascript
 function doPost(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = JSON.parse(e.postData.contents);
 
+  var temp = data.temp;
+  var hum = data.hum;
+  var pres = data.pres;
+  var vbat = data.vbat || "";
+  var current = data.current || "";
+  var power = data.power || "";
+
+  // คำนวณโอกาสฝนตก (RainChance %)
+  var rainChance = 0;
+  if (hum > 80) rainChance += 20;
+  if (hum > 90) rainChance += 10;
+  if (pres < 1010) rainChance += 20;
+  if (pres < 1000) rainChance += 10;
+  if (temp >= 28) rainChance += 10;
+  if (temp >= 30) rainChance += 5;
+
+  // แปลงผลโอกาสฝนตกเป็นคำอธิบาย
+  var description = "";
+  if (rainChance >= 70) {
+    description = "🌧 ฝนมีโอกาสตกสูงมาก";
+  } else if (rainChance >= 40) {
+    description = "🌦 มีโอกาสฝนตก";
+  } else if (rainChance >= 20) {
+    description = "⛅ อาจมีฝนเล็กน้อย";
+  } else {
+    description = "☀️ โอกาสฝนตกต่ำ";
+  }
+
+  // เพิ่มข้อมูลลงในชีต
   sheet.appendRow([
     new Date(),
-    data.temp,
-    data.hum,
-    data.pres,
-    data.vbat || "",
-    data.current || "",
-    data.power || ""
+    temp,
+    hum,
+    pres,
+    vbat,
+    current,
+    power,
+    rainChance,
+    description
   ]);
 
   return ContentService.createTextOutput("Success");
 }
+
 ```
 
 ## 📚 ติดตั้งไลบรารีใน Arduino IDE
