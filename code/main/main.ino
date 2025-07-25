@@ -8,7 +8,7 @@
 #define SCL_PIN 22
 #define RESET_BUTTON 14  // ใช้ปุ่ม BOOT (GPIO13)
 
-const char* sheetURL = "https://script.google.com/macros/s/AKfycbyUCfaF-JZhcWBzUe7eB_CQjkXM8wAd_b2z6c30qwO3CbH8MV4xzTkzetrzT_apRcyz/exec";
+const char* sheetURL = "";
 
 WiFiManager wm;
 Adafruit_BME280 bme;
